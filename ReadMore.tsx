@@ -33,11 +33,11 @@ const ReadMore = ({
 }: Props) => {
   const [maxWidth, setMaxWidth] = useState(0);
   const [readMoreWidth, setReadMoreWidth] = useState(0);
-  const [textWidth, setTextWidth] = useState(0);
+
+  const [textHeight, setTextHeight] = useState(0);
+  const [textHeightOneLine, setTextHeightOneLine] = useState(0);
 
   const [numOfLine, setNumOfLine] = useState(1);
-
-  const isShowFull = numOfLine === 0;
 
   const onLayoutMaxWidth = useCallback((e: LayoutChangeEvent) => {
     setMaxWidth(e.nativeEvent.layout.width);
@@ -47,13 +47,14 @@ const ReadMore = ({
     setReadMoreWidth(e.nativeEvent.layout.width);
   }, []);
 
-  const onLayoutTextWidth = useCallback((e: LayoutChangeEvent) => {
-    setTextWidth(e.nativeEvent.layout.width);
+  const onLayoutTextHeight = useCallback((e: LayoutChangeEvent) => {
+    setTextHeight(e.nativeEvent.layout.height);
+  }, []);
+  const onLayoutTextHeightOneLine = useCallback((e: LayoutChangeEvent) => {
+    setTextHeightOneLine(e.nativeEvent.layout.height);
   }, []);
 
-  const isShowReadMore = useMemo(() => {
-    return textWidth >= maxWidth - readMoreWidth - 10 && numOfLine === 1;
-  }, [textWidth, maxWidth, readMoreWidth, numOfLine]);
+  const isShowReadMore = textHeight > textHeightOneLine && numOfLine === 1;
 
   const isShowReadLess = !onReadMore && !numOfLine;
 
@@ -74,13 +75,13 @@ const ReadMore = ({
   }, [onReadMore, onPressReadMore]);
 
   const textStyle: StyleProp<TextStyle> = useMemo(() => {
-    const width = isShowFull ? maxWidth : maxWidth - readMoreWidth;
-    const st: TextStyle = isShowReadMore ? {width} : {width: textWidth};
+    const width = isShowReadMore ? maxWidth - readMoreWidth : undefined;
+
     if (style) {
-      return StyleSheet.compose(style, st);
+      return StyleSheet.compose(style, {width});
     }
-    return st;
-  }, [isShowFull, maxWidth, readMoreWidth, isShowReadMore, style, textWidth]);
+    return {width};
+  }, [isShowReadMore, maxWidth, readMoreWidth, style]);
 
   const readMoreFinalStyle: StyleProp<TextStyle> = useMemo(() => {
     return StyleSheet.compose(readMoreStyle, {
@@ -92,20 +93,25 @@ const ReadMore = ({
 
   return (
     <>
-      <View style={styles.fake}>
-        {/* This block to know actually textWidth */}
-        <Text numberOfLines={1} onLayout={onLayoutTextWidth}>
+      <View onLayout={onLayoutMaxWidth} style={styles.fake}>
+        {/* This block to know actually textHeight */}
+        <Text
+          numberOfLines={1}
+          onLayout={onLayoutTextHeightOneLine}
+          style={style}>
+          {children}
+        </Text>
+        <Text onLayout={onLayoutTextHeight} style={style}>
           {children}
         </Text>
       </View>
-      <View onLayout={onLayoutMaxWidth}>
+      <View>
         {/* This block is displayed on screen */}
         <Text {...rest} numberOfLines={numOfLine} style={textStyle}>
           {children}
           {isShowReadLess && (
             <Text>
-              {' '}
-              -{' '}
+              {' - '}
               <Text style={readLessStyle} onPress={onPressReadLess}>
                 {readLessText}
               </Text>
@@ -126,7 +132,12 @@ const ReadMore = ({
 };
 
 const styles = StyleSheet.create({
-  fake: {flexDirection: 'row', height: 0},
+  fake: {
+    position: 'absolute',
+    backgroundColor: 'red',
+    opacity: 0,
+    zIndex: -100,
+  },
 });
 
 export default ReadMore;
